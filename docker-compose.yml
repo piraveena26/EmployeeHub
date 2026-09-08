@@ -1,0 +1,42 @@
+﻿version: '3.8'
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: employeehub_db
+    environment:
+      POSTGRES_DB: employeehub_db
+      POSTGRES_USER: employeehub_user
+      POSTGRES_PASSWORD: employeehub_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  backend:
+    build: ./backend
+    container_name: employeehub_backend
+    volumes:
+      - ./backend:/app
+    ports:
+      - "8000:8000"
+    environment:
+      - DEBUG=True
+      - DB_NAME=employeehub_db
+      - DB_USER=employeehub_user
+      - DB_PASSWORD=employeehub_password
+      - DB_HOST=db
+      - DB_PORT=5432
+    depends_on:
+      - db
+
+  frontend:
+    build: ./frontend
+    container_name: employeehub_frontend
+    ports:
+      - "4200:80"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
