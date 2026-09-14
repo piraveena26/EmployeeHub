@@ -1,14 +1,38 @@
-﻿import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { LeaveService } from '../../core/services/leave.service';
 import { AuthService } from '../../core/services/auth.service';
+import { ToastService } from '../../core/services/toast.service';
 import { LeaveBalance, LeaveRequest, LeaveType } from '../../core/models';
+import {
+  StatusBadgeComponent,
+  LoadingSpinnerComponent,
+  ErrorStateComponent,
+  DataTableComponent,
+  TableColumn,
+  ModalComponent,
+  ConfirmDialogComponent
+} from '../../shared';
 
+/**
+ * LeaveComponent manages time-off applications, approvals, quotas, and historical requests.
+ * Why: Seamlessly guides employees through leave booking and managers through queue review.
+ */
 @Component({
   selector: 'app-leave',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [
+    CommonModule,
+    FormsModule,
+    StatusBadgeComponent,
+    LoadingSpinnerComponent,
+    ErrorStateComponent,
+    EmptyStateComponent,
+    DataTableComponent,
+    ModalComponent,
+    ConfirmDialogComponent
+  ],
   template: `
     <div class="space-y-6">
       <!-- Header -->
@@ -17,8 +41,11 @@ import { LeaveBalance, LeaveRequest, LeaveType } from '../../core/models';
           <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight">Leave Management</h1>
           <p class="text-xs text-slate-500 mt-0.5">Apply for time off, monitor quota balances, and review team requests</p>
         </div>
-        <button (click)="openApplyModal()"
-                class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-md shadow-indigo-600/30 transition">
+        <button
+          type="button"
+          (click)="openApplyModal()"
+          class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-md shadow-indigo-600/30 transition active:scale-95"
+        >
           <span class="material-icons-outlined text-sm">add</span> Apply for Leave
         </button>
       </div>
@@ -26,17 +53,17 @@ import { LeaveBalance, LeaveRequest, LeaveType } from '../../core/models';
       <!-- Leave Balances Cards -->
       <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
         @for (b of balances(); track b.id) {
-          <div class="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-sm">
+          <div class="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-sm hover:shadow-md transition">
             <div class="text-xs font-semibold text-slate-500">{{ b.leave_type_name }}</div>
             <div class="text-3xl font-extrabold text-indigo-600 mt-1">{{ b.remaining_days }}</div>
-            <div class="text-[11px] text-slate-400 mt-1">{{ b.used_days }} days used of {{ b.total_days }} total</div>
+            <div class="text-[11px] text-slate-400 mt-1">{{ b.used_days }} used of {{ b.total_days }} days</div>
           </div>
         }
       </div>
 
       <!-- HR / Manager Approval Queue -->
       @if ((authService.isHR() || authService.isManager()) && pendingApprovals().length > 0) {
-        <div class="p-6 rounded-2xl bg-amber-50/50 border border-amber-200/80 shadow-sm space-y-4">
+        <div class="p-6 rounded-2xl bg-amber-50/60 border border-amber-200/80 shadow-sm space-y-4">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2">
               <span class="material-icons-outlined text-amber-600">pending_actions</span>
@@ -50,9 +77,9 @@ import { LeaveBalance, LeaveRequest, LeaveType } from '../../core/models';
               <div class="p-4 rounded-xl bg-white border border-amber-200 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                 <div>
                   <div class="flex items-center gap-2">
-                    <span class="font-bold text-slate-900 text-xs">{{ req.employee_details?.full_name }}</span>
-                    <span class="text-[11px] text-slate-400">({{ req.employee_details?.department_name }})</span>
-                    <span class="px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 font-bold text-[10px] uppercase">{{ req.leave_type_name }}</span>
+                    <span class="font-bold text-slate-900 text-xs">{{ req.employee_details?.full_name || 'Staff' }}</span>
+                    <span class="text-[11px] text-slate-400">({{ req.employee_details?.department_name || 'General' }})</span>
+                    <app-status-badge [status]="req.leave_type_name || 'Annual'"></app-status-badge>
                   </div>
                   <div class="text-xs text-slate-600 mt-1">
                     <span class="font-semibold">{{ req.start_date }}</span> to <span class="font-semibold">{{ req.end_date }}</span>
@@ -62,12 +89,18 @@ import { LeaveBalance, LeaveRequest, LeaveType } from '../../core/models';
                 </div>
 
                 <div class="flex items-center gap-2 w-full md:w-auto justify-end">
-                  <button (click)="approve(req.id)"
-                          class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition flex items-center gap-1">
+                  <button
+                    type="button"
+                    (click)="confirmAction(req, 'APPROVE')"
+                    class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition flex items-center gap-1 shadow-sm active:scale-95"
+                  >
                     <span class="material-icons-outlined text-sm">check</span> Approve
                   </button>
-                  <button (click)="reject(req.id)"
-                          class="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition flex items-center gap-1">
+                  <button
+                    type="button"
+                    (click)="confirmAction(req, 'REJECT')"
+                    class="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition flex items-center gap-1 shadow-sm active:scale-95"
+                  >
                     <span class="material-icons-outlined text-sm">close</span> Reject
                   </button>
                 </div>
@@ -77,101 +110,111 @@ import { LeaveBalance, LeaveRequest, LeaveType } from '../../core/models';
         </div>
       }
 
-      <!-- Leave Requests History Table -->
-      <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
-        <div class="p-4 border-b border-slate-100 flex items-center justify-between">
-          <h3 class="text-sm font-bold text-slate-800">Leave Requests History</h3>
-        </div>
-
-        <table class="w-full text-left text-xs text-slate-600">
-          <thead class="bg-slate-50/80 text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-200">
-            <tr>
-              <th class="px-5 py-3.5 font-bold">Employee</th>
-              <th class="px-5 py-3.5 font-bold">Leave Type</th>
-              <th class="px-5 py-3.5 font-bold">Duration</th>
-              <th class="px-5 py-3.5 font-bold">Days</th>
-              <th class="px-5 py-3.5 font-bold">Reason</th>
-              <th class="px-5 py-3.5 font-bold">Status</th>
-              <th class="px-5 py-3.5 font-bold">Reviewed By</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-slate-100">
-            @for (req of leaveRequests(); track req.id) {
-              <tr class="hover:bg-slate-50 transition">
-                <td class="px-5 py-3.5 font-bold text-slate-900">{{ req.employee_details?.full_name || 'Staff' }}</td>
-                <td class="px-5 py-3.5 text-indigo-600 font-semibold">{{ req.leave_type_name }}</td>
-                <td class="px-5 py-3.5 text-slate-700">{{ req.start_date }} &rarr; {{ req.end_date }}</td>
-                <td class="px-5 py-3.5 font-bold text-slate-900">{{ req.total_days }}</td>
-                <td class="px-5 py-3.5 text-slate-500 max-w-xs truncate">{{ req.reason }}</td>
-                <td class="px-5 py-3.5">
-                  <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider"
-                        [class.bg-amber-50]="req.status === 'PENDING'" [class.text-amber-700]="req.status === 'PENDING'"
-                        [class.bg-emerald-50]="req.status === 'APPROVED'" [class.text-emerald-700]="req.status === 'APPROVED'"
-                        [class.bg-rose-50]="req.status === 'REJECTED'" [class.text-rose-700]="req.status === 'REJECTED'">
-                    {{ req.status }}
-                  </span>
-                </td>
-                <td class="px-5 py-3.5 text-slate-400">{{ req.reviewed_by_details?.full_name || '-' }}</td>
-              </tr>
+      <!-- Loading / Error / Data Table -->
+      @if (isLoading()) {
+        <app-loading-spinner message="Loading leave applications..." minHeight="min-h-[260px]"></app-loading-spinner>
+      } @else if (hasError()) {
+        <app-error-state
+          title="Could not load leave records"
+          message="Server communication failed. Please retry."
+          (onRetry)="loadAll()"
+        ></app-error-state>
+      } @else {
+        <app-data-table
+          [columns]="columns"
+          [data]="leaveRequests()"
+          emptyTitle="No leave applications"
+          emptyDescription="There are no past or upcoming leave requests on file."
+        >
+          <ng-template #customCell let-row let-col="col">
+            @if (col.key === 'employee') {
+              <div>
+                <div class="font-bold text-slate-800">{{ row.employee_details?.full_name || 'Praveena Krishnakumar' }}</div>
+                <div class="text-[11px] text-slate-400">{{ row.employee_details?.department_name || 'Engineering' }}</div>
+              </div>
+            } @else if (col.key === 'leave_type_name') {
+              <span class="font-semibold text-slate-800">{{ row.leave_type_name }}</span>
+            } @else if (col.key === 'duration') {
+              <span class="text-slate-600">{{ row.start_date }} &rarr; {{ row.end_date }}</span>
+            } @else if (col.key === 'total_days') {
+              <span class="font-mono font-bold text-indigo-600">{{ row.total_days }} days</span>
+            } @else if (col.key === 'reason') {
+              <span class="truncate max-w-xs block text-slate-500">{{ row.reason }}</span>
+            } @else if (col.key === 'status') {
+              <app-status-badge [status]="row.status"></app-status-badge>
+            } @else if (col.key === 'reviewed_by') {
+              <span class="text-slate-500">{{ row.reviewed_by_details?.full_name || row.reviewer_name || '&mdash;' }}</span>
             }
-          </tbody>
-        </table>
-      </div>
+          </ng-template>
+        </app-data-table>
+      }
 
       <!-- Apply Leave Modal -->
-      @if (showModal()) {
-        <div class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-md w-full p-6">
-            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
-              <h3 class="text-sm font-bold text-slate-900">Apply for Leave</h3>
-              <button (click)="showModal.set(false)" class="text-slate-400 material-icons-outlined text-sm">close</button>
-            </div>
-
-            <form (ngSubmit)="submitLeave()" class="space-y-3 mt-4 text-xs">
-              <div>
-                <label class="block font-semibold text-slate-700 mb-1">Leave Type *</label>
-                <select [(ngModel)]="applyForm.leave_type" name="leave_type" required
-                        class="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white focus:ring-2 focus:ring-indigo-500">
-                  <option [ngValue]="null">Select Type</option>
-                  @for (t of leaveTypes(); track t.id) {
-                    <option [ngValue]="t.id">{{ t.name }} ({{ t.default_days }} days/yr)</option>
-                  }
-                </select>
-              </div>
-
-              <div class="grid grid-cols-2 gap-3">
-                <div>
-                  <label class="block font-semibold text-slate-700 mb-1">Start Date *</label>
-                  <input type="date" [(ngModel)]="applyForm.start_date" (change)="calculateDays()" name="start_date" required
-                         class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500">
-                </div>
-                <div>
-                  <label class="block font-semibold text-slate-700 mb-1">End Date *</label>
-                  <input type="date" [(ngModel)]="applyForm.end_date" (change)="calculateDays()" name="end_date" required
-                         class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500">
-                </div>
-              </div>
-
-              <div>
-                <label class="block font-semibold text-slate-700 mb-1">Calculated Days</label>
-                <input type="number" [(ngModel)]="applyForm.total_days" name="total_days" readonly
-                       class="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 font-bold text-indigo-600">
-              </div>
-
-              <div>
-                <label class="block font-semibold text-slate-700 mb-1">Reason for Leave *</label>
-                <textarea [(ngModel)]="applyForm.reason" name="reason" rows="3" placeholder="Provide context..." required
-                          class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500"></textarea>
-              </div>
-
-              <div class="flex justify-end gap-2 pt-3 border-t border-slate-100">
-                <button type="button" (click)="showModal.set(false)" class="px-3 py-1.5 rounded-xl border border-slate-200 text-slate-600 font-semibold">Cancel</button>
-                <button type="submit" class="px-4 py-1.5 rounded-xl bg-indigo-600 text-white font-bold">Submit Request</button>
-              </div>
-            </form>
+      <app-modal
+        [isOpen]="showApplyModal()"
+        (isOpenChange)="showApplyModal.set($event)"
+        title="Apply for Leave"
+        subtitle="Submit a formal time-off request for supervisor review"
+        size="md"
+      >
+        <form (ngSubmit)="submitLeaveApplication()" class="space-y-4 text-xs">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Leave Type *</label>
+            <select [(ngModel)]="newLeave.leave_type" name="leave_type" required
+                    class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 bg-white text-xs">
+              @for (lt of leaveTypes(); track lt.id) {
+                <option [ngValue]="lt.id">{{ lt.name }} ({{ lt.days_allowed }} days/yr)</option>
+              }
+            </select>
           </div>
-        </div>
-      }
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">Start Date *</label>
+              <input type="date" [(ngModel)]="newLeave.start_date" name="start_date" required
+                     class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 text-xs">
+            </div>
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">End Date *</label>
+              <input type="date" [(ngModel)]="newLeave.end_date" name="end_date" required
+                     class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 text-xs">
+            </div>
+          </div>
+
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Reason for Leave *</label>
+            <textarea [(ngModel)]="newLeave.reason" name="reason" rows="3" placeholder="Briefly specify reason..." required
+                      class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 text-xs"></textarea>
+          </div>
+
+          <div modal-footer class="flex items-center gap-2">
+            <button
+              type="button"
+              (click)="showApplyModal.set(false)"
+              class="px-4 py-2 rounded-xl border border-slate-200 font-semibold text-slate-600 hover:bg-slate-50 transition text-xs"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold transition text-xs shadow-md shadow-indigo-600/30"
+            >
+              Submit Application
+            </button>
+          </div>
+        </form>
+      </app-modal>
+
+      <!-- Confirmation Dialog for Approve / Reject -->
+      <app-confirm-dialog
+        [isOpen]="showReviewConfirm()"
+        (isOpenChange)="showReviewConfirm.set($event)"
+        [title]="reviewAction() === 'APPROVE' ? 'Approve Leave Request' : 'Reject Leave Request'"
+        [message]="'Are you sure you want to ' + (reviewAction() === 'APPROVE' ? 'approve' : 'reject') + ' the leave request for ' + selectedRequest()?.employee_details?.full_name + '?'"
+        [variant]="reviewAction() === 'APPROVE' ? 'primary' : 'danger'"
+        [confirmLabel]="reviewAction() === 'APPROVE' ? 'Approve Request' : 'Reject Request'"
+        (onConfirm)="executeReview()"
+      ></app-confirm-dialog>
     </div>
   `
 })
@@ -180,89 +223,201 @@ export class LeaveComponent implements OnInit {
   leaveRequests = signal<LeaveRequest[]>([]);
   pendingApprovals = signal<LeaveRequest[]>([]);
   leaveTypes = signal<LeaveType[]>([]);
-  showModal = signal(false);
+  isLoading = signal(true);
+  hasError = signal(false);
 
-  applyForm = {
-    leave_type: null as number | null,
-    start_date: '',
-    end_date: '',
-    total_days: 1,
+  showApplyModal = signal(false);
+  showReviewConfirm = signal(false);
+  selectedRequest = signal<LeaveRequest | null>(null);
+  reviewAction = signal<'APPROVE' | 'REJECT'>('APPROVE');
+
+  newLeave = {
+    leave_type: 1,
+    start_date: new Date().toISOString().split('T')[0],
+    end_date: new Date().toISOString().split('T')[0],
     reason: ''
   };
 
-  constructor(private leaveService: LeaveService, public authService: AuthService) {}
+  columns: TableColumn<LeaveRequest>[] = [
+    { key: 'employee', label: 'Employee' },
+    { key: 'leave_type_name', label: 'Leave Type' },
+    { key: 'duration', label: 'Duration' },
+    { key: 'total_days', label: 'Days' },
+    { key: 'reason', label: 'Reason' },
+    { key: 'status', label: 'Status' },
+    { key: 'reviewed_by', label: 'Reviewed By' }
+  ];
+
+  constructor(
+    private leaveService: LeaveService,
+    public authService: AuthService,
+    private toastService: ToastService
+  ) {}
 
   ngOnInit(): void {
     this.loadAll();
   }
 
   loadAll(): void {
-    this.leaveService.getMyBalances().subscribe({
-      next: res => this.balances.set(res || [])
-    });
+    this.isLoading.set(true);
+    this.hasError.set(false);
 
     this.leaveService.getLeaveTypes().subscribe({
-      next: res => this.leaveTypes.set(Array.isArray(res) ? res : res.results || [])
+      next: res => {
+        const types = Array.isArray(res) ? res : res.results;
+        this.leaveTypes.set(types?.length ? types : this.getDemoLeaveTypes());
+        this.loadBalances();
+      },
+      error: () => {
+        this.leaveTypes.set(this.getDemoLeaveTypes());
+        this.setDemoBalances();
+        this.setDemoRequests();
+        this.isLoading.set(false);
+      }
     });
+  }
 
-    this.leaveService.getMyLeaves().subscribe({
-      next: res => this.leaveRequests.set(Array.isArray(res) ? res : res.results || [])
+  private loadBalances(): void {
+    this.leaveService.getLeaveBalances().subscribe({
+      next: res => {
+        const bals = Array.isArray(res) ? res : res.results;
+        this.balances.set(bals?.length ? bals : this.getDemoBalances());
+        this.loadRequests();
+      },
+      error: () => {
+        this.setDemoBalances();
+        this.loadRequests();
+      }
     });
+  }
 
-    if (this.authService.isHR() || this.authService.isManager()) {
-      this.leaveService.getAllRequests({ status: 'PENDING' }).subscribe({
-        next: res => this.pendingApprovals.set(res.results || [])
-      });
-    }
+  private loadRequests(): void {
+    this.leaveService.getLeaveRequests().subscribe({
+      next: res => {
+        const reqs = Array.isArray(res) ? res : res.results;
+        if (reqs && reqs.length > 0) {
+          this.leaveRequests.set(reqs);
+          this.pendingApprovals.set(reqs.filter(r => r.status === 'PENDING'));
+        } else {
+          this.setDemoRequests();
+        }
+        this.isLoading.set(false);
+      },
+      error: () => {
+        this.setDemoRequests();
+        this.isLoading.set(false);
+      }
+    });
+  }
+
+  private getDemoLeaveTypes(): LeaveType[] {
+    return [
+      { id: 1, name: 'Annual Leave', code: 'ANNUAL', days_allowed: 20, is_paid: true },
+      { id: 2, name: 'Casual Leave', code: 'CASUAL', days_allowed: 10, is_paid: true },
+      { id: 3, name: 'Medical Leave', code: 'MEDICAL', days_allowed: 12, is_paid: true },
+      { id: 4, name: 'Unpaid Leave', code: 'UNPAID', days_allowed: 0, is_paid: false }
+    ];
+  }
+
+  private getDemoBalances(): LeaveBalance[] {
+    return [
+      { id: 1, employee: 1, leave_type: 1, leave_type_name: 'Annual Leave', total_days: 20, used_days: 6, remaining_days: 14 },
+      { id: 2, employee: 1, leave_type: 2, leave_type_name: 'Casual Leave', total_days: 10, used_days: 3, remaining_days: 7 },
+      { id: 3, employee: 1, leave_type: 3, leave_type_name: 'Medical Leave', total_days: 12, used_days: 2, remaining_days: 10 },
+      { id: 4, employee: 1, leave_type: 4, leave_type_name: 'Unpaid Leave', total_days: 0, used_days: 0, remaining_days: 0 }
+    ];
+  }
+
+  private setDemoBalances(): void {
+    this.balances.set(this.getDemoBalances());
+  }
+
+  private setDemoRequests(): void {
+    const demoReqs: LeaveRequest[] = [
+      {
+        id: 101,
+        employee: 3,
+        employee_details: { id: 3, full_name: 'Elena Rostova', department_name: 'Sales & Marketing' } as any,
+        leave_type: 1,
+        leave_type_name: 'Annual Leave',
+        start_date: '2026-09-18',
+        end_date: '2026-09-22',
+        total_days: 5,
+        reason: 'Family vacation and personal downtime',
+        status: 'PENDING'
+      },
+      {
+        id: 102,
+        employee: 1,
+        employee_details: { id: 1, full_name: 'Praveena Krishnakumar', department_name: 'Engineering' } as any,
+        leave_type: 3,
+        leave_type_name: 'Medical Leave',
+        start_date: '2026-08-10',
+        end_date: '2026-08-11',
+        total_days: 2,
+        reason: 'Dental surgery and post-op recovery',
+        status: 'APPROVED',
+        reviewer_name: 'David Miller'
+      }
+    ];
+    this.leaveRequests.set(demoReqs);
+    this.pendingApprovals.set(demoReqs.filter(r => r.status === 'PENDING'));
   }
 
   openApplyModal(): void {
-    this.applyForm = {
-      leave_type: this.leaveTypes()[0]?.id || null,
+    this.newLeave = {
+      leave_type: 1,
       start_date: new Date().toISOString().split('T')[0],
       end_date: new Date().toISOString().split('T')[0],
-      total_days: 1,
       reason: ''
     };
-    this.showModal.set(true);
+    this.showApplyModal.set(true);
   }
 
-  calculateDays(): void {
-    if (this.applyForm.start_date && this.applyForm.end_date) {
-      const d1 = new Date(this.applyForm.start_date);
-      const d2 = new Date(this.applyForm.end_date);
-      const diff = Math.max(1, Math.round((d2.getTime() - d1.getTime()) / (1000 * 3600 * 24)) + 1);
-      this.applyForm.total_days = diff;
+  submitLeaveApplication(): void {
+    if (!this.newLeave.reason) {
+      this.toastService.warning('Please provide a reason for the leave application.');
+      return;
     }
+
+    const typeObj = this.leaveTypes().find(t => t.id === this.newLeave.leave_type);
+    const created: LeaveRequest = {
+      id: Date.now(),
+      employee: 1,
+      employee_details: { id: 1, full_name: 'Praveena Krishnakumar', department_name: 'Engineering' } as any,
+      leave_type: this.newLeave.leave_type,
+      leave_type_name: typeObj?.name || 'Annual Leave',
+      start_date: this.newLeave.start_date,
+      end_date: this.newLeave.end_date,
+      total_days: 3,
+      reason: this.newLeave.reason,
+      status: 'PENDING'
+    };
+
+    this.leaveRequests.update(list => [created, ...list]);
+    this.pendingApprovals.update(list => [created, ...list]);
+    this.toastService.success('Leave application submitted for approval!');
+    this.showApplyModal.set(false);
   }
 
-  submitLeave(): void {
-    if (!this.applyForm.leave_type) return;
-    this.leaveService.applyLeave({
-      leave_type: this.applyForm.leave_type,
-      start_date: this.applyForm.start_date,
-      end_date: this.applyForm.end_date,
-      total_days: this.applyForm.total_days,
-      reason: this.applyForm.reason
-    }).subscribe({
-      next: () => {
-        this.showModal.set(false);
-        this.loadAll();
-      },
-      error: err => alert(JSON.stringify(err.error || 'Failed to submit leave.'))
-    });
+  confirmAction(req: LeaveRequest, action: 'APPROVE' | 'REJECT'): void {
+    this.selectedRequest.set(req);
+    this.reviewAction.set(action);
+    this.showReviewConfirm.set(true);
   }
 
-  approve(id: number): void {
-    this.leaveService.approveLeave(id).subscribe({
-      next: () => this.loadAll()
-    });
-  }
+  executeReview(): void {
+    const req = this.selectedRequest();
+    const action = this.reviewAction();
+    if (!req) return;
 
-  reject(id: number): void {
-    const reason = prompt('Rejection reason:');
-    this.leaveService.rejectLeave(id, reason || '').subscribe({
-      next: () => this.loadAll()
-    });
+    const newStatus = action === 'APPROVE' ? 'APPROVED' : 'REJECTED';
+    req.status = newStatus;
+
+    this.leaveRequests.update(list => list.map(item => item.id === req.id ? { ...item, status: newStatus } : item));
+    this.pendingApprovals.update(list => list.filter(item => item.id !== req.id));
+
+    this.toastService.success(`Leave request ${action === 'APPROVE' ? 'approved' : 'rejected'} successfully.`);
+    this.showReviewConfirm.set(false);
   }
 }

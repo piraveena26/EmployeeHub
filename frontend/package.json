@@ -3,21 +3,21 @@
   "version": "0.0.0",
   "scripts": {
     "ng": "ng",
-    "start": "ng serve",
-    "build": "ng build",
-    "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "start": "HOME=$PWD NG_CLI_ANALYTICS=false ng serve",
+    "build": "HOME=$PWD NG_CLI_ANALYTICS=false ng build",
+    "watch": "HOME=$PWD NG_CLI_ANALYTICS=false ng build --watch --configuration development",
+    "test": "HOME=$PWD NG_CLI_ANALYTICS=false ng test"
   },
   "private": true,
   "packageManager": "npm@11.8.0",
   "dependencies": {
-    "@angular/animations": "^21.0.0",
-    "@angular/cdk": "^21.0.0",
+    "@angular/animations": "^21.2.0",
+    "@angular/cdk": "^21.2.0",
     "@angular/common": "^21.2.0",
     "@angular/compiler": "^21.2.0",
     "@angular/core": "^21.2.0",
     "@angular/forms": "^21.2.0",
-    "@angular/material": "^21.0.0",
+    "@angular/material": "^21.2.0",
     "@angular/platform-browser": "^21.2.0",
     "@angular/router": "^21.2.0",
     "autoprefixer": "^10.5.5",
