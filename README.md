@@ -167,14 +167,12 @@ EmployeeHub/
 
 ## 📈 Implementation Roadmap & Status
 
-EmployeeHub is developed sequentially in phases:
-
 | Phase | Module / Layer | Status | Highlights |
 | :--- | :--- | :---: | :--- |
-| **Stage 1** | **UI & Shared Design System** | **Completed** | Shared component library (`DataTable`, `Modal`, `StatusBadge`, `FilterBar`, `SearchBar`, `Pagination`, `Toasts`), zero `.css` Tailwind standard, 10 fully interactive feature views, HR photo upload controls, 29/29 Vitest tests passing. |
-| **Stage 2** | **Frontend Client & State Integration** | **In Progress** | Angular services configured with resilient offline demo authentication and REST API client architecture. |
-| **Stage 3** | **Backend (Django REST Framework)** | **Pending** | Django app structures, models, serializers, and ViewSets defined in `backend/`; pending virtual environment setup and migration execution. |
-| **Stage 4** | **Database (PostgreSQL & Seeding)** | **Pending** | PostgreSQL 16 schema creation, relational migrations, test seed data runner, and Celery/Redis background processing. |
+| **Stage 1** | **UI & Shared Design System** | ✅ **Completed** | Shared component library (`DataTable`, `Modal`, `StatusBadge`, `FilterBar`, `SearchBar`, `Pagination`, `Toasts`), zero `.css` Tailwind standard, all feature views built, HR photo upload, 29/29 Vitest tests passing. |
+| **Stage 2** | **Frontend Auth & Integration** | ✅ **Completed** | JWT auth with offline demo fallback, role-based guards, Angular proxy to backend, HR employee photo upload with live preview. |
+| **Stage 3** | **Backend (Django REST Framework)** | ✅ **Completed** | Python 3.12 venv, all dependencies installed, SQLite database, 9 Django app migrations applied, seed data loaded (4 users, 8 employees, payroll periods, leave balances, notifications). |
+| **Stage 4** | **Database & Seeding** | ✅ **Completed** | SQLite schema in place, `seed_data` management command populates all tables with realistic demo data. Production upgrade path to PostgreSQL available via environment variables. |
 
 ---
 
