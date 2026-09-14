@@ -229,11 +229,11 @@ import { LoadingSpinnerComponent, ErrorStateComponent } from '../../shared';
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div class="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-sm flex items-center justify-between">
               <div>
-                <span class="text-xs font-semibold text-slate-500">Active Goals</span>
-                <div class="text-2xl font-bold text-slate-800 mt-1">{{ emp.active_goals_count }} Goals</div>
+                <span class="text-xs font-semibold text-slate-500">My Timesheets</span>
+                <div class="text-2xl font-bold text-slate-800 mt-1">Log Hours</div>
               </div>
-              <a routerLink="/performance" class="px-3 py-1.5 bg-indigo-50 text-indigo-600 text-xs font-semibold rounded-xl hover:bg-indigo-100 transition">
-                View KPIs
+              <a routerLink="/timesheets" class="px-3 py-1.5 bg-violet-50 text-violet-600 text-xs font-semibold rounded-xl hover:bg-violet-100 transition">
+                View Hours
               </a>
             </div>
 

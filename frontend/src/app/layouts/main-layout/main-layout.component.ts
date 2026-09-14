@@ -119,12 +119,7 @@ import { AppNotification, TodayAttendanceStatus } from '../../core/models';
             Payroll & Payslips
           </a>
 
-          <a routerLink="/performance" (click)="isMobileMenuOpen.set(false)"
-             routerLinkActive="bg-indigo-600 text-white shadow-md shadow-indigo-600/30"
-             class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-300 hover:bg-slate-800/80 hover:text-white transition">
-            <span class="material-icons-outlined text-[20px]">trending_up</span>
-            Performance
-          </a>
+
 
           @if (authService.isHR() || authService.isManager()) {
             <a routerLink="/reports" (click)="isMobileMenuOpen.set(false)"
