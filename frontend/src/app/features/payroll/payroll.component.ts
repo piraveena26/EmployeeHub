@@ -9,7 +9,6 @@ import {
   StatusBadgeComponent,
   LoadingSpinnerComponent,
   ErrorStateComponent,
-  EmptyStateComponent,
   DataTableComponent,
   TableColumn,
   ModalComponent
@@ -28,7 +27,6 @@ import {
     StatusBadgeComponent,
     LoadingSpinnerComponent,
     ErrorStateComponent,
-    EmptyStateComponent,
     DataTableComponent,
     ModalComponent
   ],
@@ -152,7 +150,7 @@ import {
               </div>
               <div class="text-right">
                 <span class="text-xs font-mono font-bold text-indigo-600">{{ ps.payslip_number }}</span>
-                <div class="text-[11px] text-slate-400">Date: {{ ps.generated_at | date:'mediumDate' }}</div>
+                <div class="text-[11px] text-slate-400">Date: {{ ps.payment_date | date:'mediumDate' }}</div>
               </div>
             </div>
 
@@ -250,8 +248,8 @@ export class PayrollComponent implements OnInit {
     this.isLoading.set(true);
     this.hasError.set(false);
 
-    this.payrollService.getPayrollPeriods().subscribe({
-      next: res => {
+    this.payrollService.getPeriods().subscribe({
+      next: (res: any) => {
         const list = Array.isArray(res) ? res : res.results;
         this.periods.set(list?.length ? list : this.getDemoPeriods());
         this.loadPayslips();
@@ -265,8 +263,8 @@ export class PayrollComponent implements OnInit {
   }
 
   private loadPayslips(): void {
-    this.payrollService.getPayslips().subscribe({
-      next: res => {
+    this.payrollService.getAllPayslips().subscribe({
+      next: (res: any) => {
         const list = Array.isArray(res) ? res : res.results;
         if (list && list.length > 0) {
           this.payslips.set(list);
@@ -284,9 +282,9 @@ export class PayrollComponent implements OnInit {
 
   private getDemoPeriods(): PayrollPeriod[] {
     return [
-      { id: 1, month: 9, year: 2026, is_processed: true, total_payslips: 48, total_payroll_amount: 142850 },
-      { id: 2, month: 8, year: 2026, is_processed: true, total_payslips: 48, total_payroll_amount: 141200 },
-      { id: 3, month: 10, year: 2026, is_processed: false, total_payslips: 0, total_payroll_amount: 0 }
+      { id: 1, month: 9, year: 2026, start_date: '2026-09-01', end_date: '2026-09-30', is_processed: true, total_payslips: 48, total_payroll_amount: 142850 },
+      { id: 2, month: 8, year: 2026, start_date: '2026-08-01', end_date: '2026-08-31', is_processed: true, total_payslips: 48, total_payroll_amount: 141200 },
+      { id: 3, month: 10, year: 2026, start_date: '2026-10-01', end_date: '2026-10-31', is_processed: false, total_payslips: 0, total_payroll_amount: 0 }
     ];
   }
 
@@ -297,36 +295,48 @@ export class PayrollComponent implements OnInit {
         payslip_number: 'PS-2026-09-001',
         employee: 1,
         employee_details: { id: 1, full_name: 'Praveena Krishnakumar', department_name: 'Engineering' } as any,
-        payroll_period: 1,
+        period: 1,
         basic_salary: 9500,
         allowances: 1200,
+        overtime_amount: 0,
         deductions: 850,
         net_salary: 9850,
-        generated_at: '2026-09-01'
+        gross_salary: 10700,
+        payment_date: '2026-09-01',
+        payment_method: 'BANK_TRANSFER' as any,
+        is_paid: true
       },
       {
         id: 2,
         payslip_number: 'PS-2026-09-002',
         employee: 2,
         employee_details: { id: 2, full_name: 'David Miller', department_name: 'Human Resources' } as any,
-        payroll_period: 1,
+        period: 1,
         basic_salary: 8500,
         allowances: 900,
+        overtime_amount: 0,
         deductions: 750,
         net_salary: 8650,
-        generated_at: '2026-09-01'
+        gross_salary: 9400,
+        payment_date: '2026-09-01',
+        payment_method: 'BANK_TRANSFER' as any,
+        is_paid: true
       },
       {
         id: 3,
         payslip_number: 'PS-2026-09-003',
         employee: 4,
         employee_details: { id: 4, full_name: 'Marcus Vance', department_name: 'Engineering' } as any,
-        payroll_period: 1,
+        period: 1,
         basic_salary: 8200,
         allowances: 800,
+        overtime_amount: 0,
         deductions: 700,
         net_salary: 8300,
-        generated_at: '2026-09-01'
+        gross_salary: 9000,
+        payment_date: '2026-09-01',
+        payment_method: 'BANK_TRANSFER' as any,
+        is_paid: true
       }
     ];
     this.payslips.set(demo);

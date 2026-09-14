@@ -262,6 +262,64 @@ import {
         size="lg"
       >
         <form (ngSubmit)="saveNewEmployee()" class="space-y-4 text-xs">
+          <!-- HR Exclusive Privilege: Photo Upload -->
+          <div class="p-3.5 rounded-xl bg-indigo-50/40 border border-indigo-100 flex flex-col sm:flex-row items-center gap-4">
+            <div class="relative group">
+              <img
+                [src]="photoPreview() || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=160'"
+                class="w-20 h-20 rounded-2xl object-cover border-2 border-indigo-300 shadow-md bg-white"
+                alt="Employee Portrait"
+              />
+              <button
+                type="button"
+                (click)="photoFileInput.click()"
+                class="absolute inset-0 bg-slate-900/60 hover:bg-slate-900/75 rounded-2xl flex flex-col items-center justify-center text-white transition opacity-90 sm:opacity-0 group-hover:opacity-100 cursor-pointer"
+                title="Upload Photo"
+              >
+                <span class="material-icons-outlined text-lg">add_a_photo</span>
+                <span class="text-[9px] font-bold mt-0.5">Upload</span>
+              </button>
+            </div>
+
+            <div class="flex-1 text-center sm:text-left space-y-1">
+              <div class="flex items-center justify-center sm:justify-start gap-2">
+                <span class="font-bold text-slate-800 text-xs">Employee Portrait / Photo</span>
+                <span class="inline-flex items-center gap-1 text-[10px] font-bold text-indigo-700 bg-indigo-100/70 px-2 py-0.5 rounded-full border border-indigo-200">
+                  <span class="material-icons-outlined text-xs">verified_user</span> HR Privilege
+                </span>
+              </div>
+              <p class="text-[11px] text-slate-500">
+                HR can upload an official portrait photo for the newly hired staff member.
+              </p>
+              <div class="flex flex-wrap items-center justify-center sm:justify-start gap-2 pt-1">
+                <input
+                  #photoFileInput
+                  type="file"
+                  accept="image/png, image/jpeg, image/webp"
+                  class="hidden"
+                  (change)="onPhotoFileSelected($event)"
+                />
+                <button
+                  type="button"
+                  (click)="photoFileInput.click()"
+                  class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs shadow-sm transition inline-flex items-center gap-1.5"
+                >
+                  <span class="material-icons-outlined text-sm">cloud_upload</span> Choose Image
+                </button>
+                @if (photoPreview()) {
+                  <button
+                    type="button"
+                    (click)="removePhoto()"
+                    class="px-2.5 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-600 text-xs transition inline-flex items-center gap-1"
+                  >
+                    <span class="material-icons-outlined text-sm">close</span> Remove
+                  </button>
+                }
+                <span class="text-[10px] text-slate-400">JPG, PNG, WebP up to 5MB</span>
+              </div>
+            </div>
+          </div>
+
           <div class="grid grid-cols-2 gap-3">
             <div>
               <label class="block font-semibold text-slate-700 mb-1">First Name *</label>
@@ -360,6 +418,10 @@ export class EmployeeListComponent implements OnInit {
   showAddModal = signal(false);
   showStatusConfirm = signal(false);
   selectedEmployeeForToggle = signal<Employee | null>(null);
+
+  /** HR Photo Upload State */
+  photoPreview = signal<string | null>(null);
+  selectedPhotoFile = signal<File | null>(null);
 
   searchQuery = signal<string>('');
   selectedDepartmentId = signal<number | null>(null);
@@ -634,7 +696,37 @@ export class EmployeeListComponent implements OnInit {
     this.currentPage.set(1);
   }
 
+  /**
+   * Handles HR image file selection for employee portrait onboarding.
+   * Why: Gives HR privilege to upload employee photos with instantaneous preview.
+   */
+  onPhotoFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files[0]) {
+      const file = input.files[0];
+      if (file.size > 5 * 1024 * 1024) {
+        this.toastService.warning('Photo file must be under 5MB.');
+        return;
+      }
+      this.selectedPhotoFile.set(file);
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        this.photoPreview.set(reader.result as string);
+        this.toastService.success('Employee portrait preview loaded successfully!');
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+
+  removePhoto(): void {
+    this.photoPreview.set(null);
+    this.selectedPhotoFile.set(null);
+  }
+
   openAddModal(): void {
+    this.photoPreview.set(null);
+    this.selectedPhotoFile.set(null);
     this.newEmp = {
       first_name: '',
       last_name: '',
@@ -656,14 +748,23 @@ export class EmployeeListComponent implements OnInit {
       return;
     }
 
+    const uploadedPhoto = this.photoPreview() ||
+      (this.newEmp.gender === 'FEMALE'
+        ? 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=120'
+        : 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120');
+
+    this.newEmp.photo_display = uploadedPhoto;
+
     this.employeeService.createEmployee(this.newEmp).subscribe({
       next: () => {
         this.toastService.success('Employee created successfully.');
         this.showAddModal.set(false);
+        this.photoPreview.set(null);
+        this.selectedPhotoFile.set(null);
         this.loadEmployees();
       },
       error: () => {
-        // In preview/demo mode, append to local signal
+        // In preview/demo mode, append to local signal with uploaded photo
         const created: Employee = {
           id: Date.now(),
           employee_id: this.newEmp.employee_id || `EMP-${Date.now()}`,
@@ -681,11 +782,13 @@ export class EmployeeListComponent implements OnInit {
           employment_status: 'ACTIVE',
           joining_date: this.newEmp.joining_date || new Date().toISOString().split('T')[0],
           basic_salary: this.newEmp.basic_salary || 7000,
-          photo_display: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120'
+          photo_display: uploadedPhoto
         };
         this.employees.update(arr => [created, ...arr]);
-        this.toastService.success(`Employee ${created.full_name} onboarded successfully!`);
+        this.toastService.success(`Employee ${created.full_name} onboarded with photo successfully!`);
         this.showAddModal.set(false);
+        this.photoPreview.set(null);
+        this.selectedPhotoFile.set(null);
       }
     });
   }

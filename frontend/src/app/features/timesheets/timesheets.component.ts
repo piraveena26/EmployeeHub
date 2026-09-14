@@ -9,7 +9,6 @@ import {
   StatusBadgeComponent,
   LoadingSpinnerComponent,
   ErrorStateComponent,
-  EmptyStateComponent,
   DataTableComponent,
   TableColumn,
   ModalComponent,
@@ -29,7 +28,6 @@ import {
     StatusBadgeComponent,
     LoadingSpinnerComponent,
     ErrorStateComponent,
-    EmptyStateComponent,
     DataTableComponent,
     ModalComponent,
     ConfirmDialogComponent
@@ -149,7 +147,7 @@ import {
         >
           <ng-template #customCell let-row let-col="col">
             @if (col.key === 'week') {
-              <span class="font-medium text-slate-900">{{ row.week_start_date }} &rarr; {{ row.week_end_date }}</span>
+              <span class="font-medium text-slate-900">Week of {{ row.week_start_date }}</span>
             } @else if (col.key === 'employee') {
               <span class="font-bold text-slate-800">{{ row.employee_details?.full_name || 'Praveena Krishnakumar' }}</span>
             } @else if (col.key === 'total_hours') {
@@ -157,7 +155,7 @@ import {
             } @else if (col.key === 'status') {
               <app-status-badge [status]="row.status"></app-status-badge>
             } @else if (col.key === 'reviewed_by') {
-              <span class="text-slate-500">{{ row.reviewer_name || '&mdash;' }}</span>
+              <span class="text-slate-500">{{ row.reviewer_details?.full_name || '&mdash;' }}</span>
             }
           </ng-template>
         </app-data-table>
@@ -290,8 +288,8 @@ export class TimesheetsComponent implements OnInit {
     this.hasError.set(false);
 
     this.timesheetService.getMyTasks().subscribe({
-      next: res => {
-        const tasks = Array.isArray(res) ? res : res.results;
+      next: (res: any) => {
+        const tasks = Array.isArray(res) ? res : res?.results;
         this.myTasks.set(tasks?.length ? tasks : this.getDemoTasks());
         this.loadTimesheets();
       },
@@ -304,12 +302,12 @@ export class TimesheetsComponent implements OnInit {
   }
 
   private loadTimesheets(): void {
-    this.timesheetService.getTimesheets().subscribe({
-      next: res => {
-        const list = Array.isArray(res) ? res : res.results;
+    this.timesheetService.getMyTimesheets().subscribe({
+      next: (res: any) => {
+        const list = Array.isArray(res) ? res : res?.results;
         if (list && list.length > 0) {
           this.timesheets.set(list);
-          this.pendingTimesheets.set(list.filter(ts => ts.status === 'SUBMITTED'));
+          this.pendingTimesheets.set(list.filter((ts: any) => ts.status === 'SUBMITTED'));
         } else {
           this.setDemoTimesheets();
         }
@@ -330,8 +328,9 @@ export class TimesheetsComponent implements OnInit {
         project_name: 'EmployeeHub Enterprise',
         task_name: 'Frontend Design System & Components',
         description: 'Implement reusable table, pagination, search, status badge, and modals',
+        start_date: '2026-09-01',
         deadline: '2026-09-20',
-        status: 'IN_PROGRESS'
+        is_completed: false
       },
       {
         id: 2,
@@ -339,8 +338,9 @@ export class TimesheetsComponent implements OnInit {
         project_name: 'Core Services API',
         task_name: 'Django REST Framework Endpoints',
         description: 'Verify JWT tokens, CRUD viewsets, and seed data',
+        start_date: '2026-09-05',
         deadline: '2026-09-25',
-        status: 'PENDING'
+        is_completed: false
       }
     ];
   }
@@ -352,12 +352,11 @@ export class TimesheetsComponent implements OnInit {
         employee: 1,
         employee_details: { id: 1, full_name: 'Praveena Krishnakumar', department_name: 'Engineering' } as any,
         week_start_date: '2026-09-07',
-        week_end_date: '2026-09-11',
         total_hours: 40,
         status: 'APPROVED',
-        reviewer_name: 'David Miller',
+        reviewer_details: { id: 2, full_name: 'David Miller' } as any,
         entries: [
-          { id: 1, timesheet: 1, project_name: 'EmployeeHub', task_name: 'UI Core Architecture', hours: 40, date: '2026-09-08' }
+          { id: 1, project_name: 'EmployeeHub', task_description: 'UI Core Architecture', hours: 40, date: '2026-09-08' }
         ]
       },
       {
@@ -365,11 +364,10 @@ export class TimesheetsComponent implements OnInit {
         employee: 4,
         employee_details: { id: 4, full_name: 'Marcus Vance', department_name: 'Engineering' } as any,
         week_start_date: '2026-09-14',
-        week_end_date: '2026-09-18',
         total_hours: 38,
         status: 'SUBMITTED',
         entries: [
-          { id: 2, timesheet: 2, project_name: 'Infrastructure', task_name: 'Docker Orchestration', hours: 38, date: '2026-09-14' }
+          { id: 2, project_name: 'Infrastructure', task_description: 'Docker Orchestration', hours: 38, date: '2026-09-14' }
         ]
       }
     ];
@@ -392,18 +390,15 @@ export class TimesheetsComponent implements OnInit {
       employee: 1,
       employee_details: { id: 1, full_name: 'Praveena Krishnakumar', department_name: 'Engineering' } as any,
       week_start_date: this.newTimesheet.week_start_date,
-      week_end_date: this.newTimesheet.week_end_date,
       total_hours: +this.newEntry.hours,
       status: 'SUBMITTED',
       entries: [
         {
           id: Date.now(),
-          timesheet: 1,
           project_name: this.newEntry.project_name,
-          task_name: this.newEntry.task_name,
+          task_description: this.newEntry.description || this.newEntry.task_name || 'Task work',
           hours: +this.newEntry.hours,
-          date: this.newTimesheet.week_start_date,
-          description: this.newEntry.description
+          date: this.newTimesheet.week_start_date
         }
       ]
     };

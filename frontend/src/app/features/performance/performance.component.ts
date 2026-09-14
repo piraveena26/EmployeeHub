@@ -9,7 +9,6 @@ import {
   StatusBadgeComponent,
   LoadingSpinnerComponent,
   ErrorStateComponent,
-  EmptyStateComponent,
   DataTableComponent,
   TableColumn,
   ModalComponent
@@ -28,7 +27,6 @@ import {
     StatusBadgeComponent,
     LoadingSpinnerComponent,
     ErrorStateComponent,
-    EmptyStateComponent,
     DataTableComponent,
     ModalComponent
   ],
@@ -232,8 +230,8 @@ export class PerformanceComponent implements OnInit {
   }
 
   private loadGoals(): void {
-    this.performanceService.getGoals().subscribe({
-      next: res => {
+    this.performanceService.getMyGoals().subscribe({
+      next: (res: any) => {
         const list = Array.isArray(res) ? res : res.results;
         if (list && list.length > 0) {
           this.goals.set(list);
@@ -250,8 +248,8 @@ export class PerformanceComponent implements OnInit {
   }
 
   private loadReviews(): void {
-    this.performanceService.getReviews().subscribe({
-      next: res => {
+    this.performanceService.getMyReviews().subscribe({
+      next: (res: any) => {
         const list = Array.isArray(res) ? res : res.results;
         if (list && list.length > 0) {
           this.reviews.set(list);
@@ -269,7 +267,7 @@ export class PerformanceComponent implements OnInit {
 
   private getDemoPeriods(): PerformancePeriod[] {
     return [
-      { id: 1, name: '2026 Annual Performance Review (Q3 Cycle)', start_date: '2026-07-01', end_date: '2026-09-30', is_active: true }
+      { id: 1, name: '2026 Annual Performance Review (Q3 Cycle)', start_date: '2026-07-01', end_date: '2026-09-30', status: 'ACTIVE' }
     ];
   }
 
@@ -278,6 +276,8 @@ export class PerformanceComponent implements OnInit {
       {
         id: 1,
         employee: 1,
+        period: 1,
+        weight: 1,
         title: 'Architect Enterprise HRMS Design System',
         description: 'Establish shared data table, dialogs, status badges, and zero-css Tailwind standards',
         target_date: '2026-09-25',
@@ -287,6 +287,8 @@ export class PerformanceComponent implements OnInit {
       {
         id: 2,
         employee: 1,
+        period: 1,
+        weight: 1,
         title: 'Zero Regression Testing Suite',
         description: 'Execute unit and integration tests across all employee and payroll flows',
         target_date: '2026-09-30',
@@ -308,7 +310,9 @@ export class PerformanceComponent implements OnInit {
         self_rating: 4.9,
         manager_rating: 4.8,
         final_score: 4.85,
-        rating_grade: 'HIGH_PERFORMER'
+        rating_grade: 'HIGH_PERFORMER',
+        is_submitted_by_employee: true,
+        is_completed: true
       },
       {
         id: 2,
@@ -319,7 +323,9 @@ export class PerformanceComponent implements OnInit {
         self_rating: 4.5,
         manager_rating: 4.6,
         final_score: 4.55,
-        rating_grade: 'COMPLETED'
+        rating_grade: 'COMPLETED',
+        is_submitted_by_employee: true,
+        is_completed: true
       }
     ];
     this.reviews.set(demo);
@@ -334,6 +340,8 @@ export class PerformanceComponent implements OnInit {
     const created: Goal = {
       id: Date.now(),
       employee: 1,
+      period: 1,
+      weight: 1,
       title: this.newGoal.title,
       description: this.newGoal.description,
       target_date: this.newGoal.target_date,

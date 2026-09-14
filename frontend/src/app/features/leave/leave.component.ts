@@ -28,7 +28,6 @@ import {
     StatusBadgeComponent,
     LoadingSpinnerComponent,
     ErrorStateComponent,
-    EmptyStateComponent,
     DataTableComponent,
     ModalComponent,
     ConfirmDialogComponent
@@ -143,7 +142,7 @@ import {
             } @else if (col.key === 'status') {
               <app-status-badge [status]="row.status"></app-status-badge>
             } @else if (col.key === 'reviewed_by') {
-              <span class="text-slate-500">{{ row.reviewed_by_details?.full_name || row.reviewer_name || '&mdash;' }}</span>
+              <span class="text-slate-500">{{ row.reviewed_by_details?.full_name || '&mdash;' }}</span>
             }
           </ng-template>
         </app-data-table>
@@ -163,7 +162,7 @@ import {
             <select [(ngModel)]="newLeave.leave_type" name="leave_type" required
                     class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 bg-white text-xs">
               @for (lt of leaveTypes(); track lt.id) {
-                <option [ngValue]="lt.id">{{ lt.name }} ({{ lt.days_allowed }} days/yr)</option>
+                <option [ngValue]="lt.id">{{ lt.name }} ({{ lt.default_days }} days/yr)</option>
               }
             </select>
           </div>
@@ -278,8 +277,8 @@ export class LeaveComponent implements OnInit {
   }
 
   private loadBalances(): void {
-    this.leaveService.getLeaveBalances().subscribe({
-      next: res => {
+    this.leaveService.getMyBalances().subscribe({
+      next: (res: any) => {
         const bals = Array.isArray(res) ? res : res.results;
         this.balances.set(bals?.length ? bals : this.getDemoBalances());
         this.loadRequests();
@@ -292,12 +291,12 @@ export class LeaveComponent implements OnInit {
   }
 
   private loadRequests(): void {
-    this.leaveService.getLeaveRequests().subscribe({
-      next: res => {
+    this.leaveService.getAllRequests().subscribe({
+      next: (res: any) => {
         const reqs = Array.isArray(res) ? res : res.results;
         if (reqs && reqs.length > 0) {
           this.leaveRequests.set(reqs);
-          this.pendingApprovals.set(reqs.filter(r => r.status === 'PENDING'));
+          this.pendingApprovals.set(reqs.filter((r: any) => r.status === 'PENDING'));
         } else {
           this.setDemoRequests();
         }
@@ -312,19 +311,19 @@ export class LeaveComponent implements OnInit {
 
   private getDemoLeaveTypes(): LeaveType[] {
     return [
-      { id: 1, name: 'Annual Leave', code: 'ANNUAL', days_allowed: 20, is_paid: true },
-      { id: 2, name: 'Casual Leave', code: 'CASUAL', days_allowed: 10, is_paid: true },
-      { id: 3, name: 'Medical Leave', code: 'MEDICAL', days_allowed: 12, is_paid: true },
-      { id: 4, name: 'Unpaid Leave', code: 'UNPAID', days_allowed: 0, is_paid: false }
+      { id: 1, name: 'Annual Leave', default_days: 20, is_paid: true },
+      { id: 2, name: 'Casual Leave', default_days: 10, is_paid: true },
+      { id: 3, name: 'Medical Leave', default_days: 12, is_paid: true },
+      { id: 4, name: 'Unpaid Leave', default_days: 0, is_paid: false }
     ];
   }
 
   private getDemoBalances(): LeaveBalance[] {
     return [
-      { id: 1, employee: 1, leave_type: 1, leave_type_name: 'Annual Leave', total_days: 20, used_days: 6, remaining_days: 14 },
-      { id: 2, employee: 1, leave_type: 2, leave_type_name: 'Casual Leave', total_days: 10, used_days: 3, remaining_days: 7 },
-      { id: 3, employee: 1, leave_type: 3, leave_type_name: 'Medical Leave', total_days: 12, used_days: 2, remaining_days: 10 },
-      { id: 4, employee: 1, leave_type: 4, leave_type_name: 'Unpaid Leave', total_days: 0, used_days: 0, remaining_days: 0 }
+      { id: 1, employee: 1, leave_type: 1, leave_type_name: 'Annual Leave', year: 2026, total_days: 20, used_days: 6, remaining_days: 14 },
+      { id: 2, employee: 1, leave_type: 2, leave_type_name: 'Casual Leave', year: 2026, total_days: 10, used_days: 3, remaining_days: 7 },
+      { id: 3, employee: 1, leave_type: 3, leave_type_name: 'Medical Leave', year: 2026, total_days: 12, used_days: 2, remaining_days: 10 },
+      { id: 4, employee: 1, leave_type: 4, leave_type_name: 'Unpaid Leave', year: 2026, total_days: 0, used_days: 0, remaining_days: 0 }
     ];
   }
 
@@ -357,7 +356,7 @@ export class LeaveComponent implements OnInit {
         total_days: 2,
         reason: 'Dental surgery and post-op recovery',
         status: 'APPROVED',
-        reviewer_name: 'David Miller'
+        review_notes: 'Approved by David Miller'
       }
     ];
     this.leaveRequests.set(demoReqs);

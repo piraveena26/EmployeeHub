@@ -56,11 +56,31 @@ import {
         <!-- Profile Banner Card -->
         <div class="p-6 md:p-8 rounded-2xl bg-white border border-slate-200/80 shadow-sm flex flex-col md:flex-row items-center md:items-start justify-between gap-6">
           <div class="flex flex-col md:flex-row items-center gap-6 text-center md:text-left">
-            <img
-              [src]="emp.photo_display || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=160'"
-              class="w-24 h-24 rounded-2xl object-cover border-2 border-indigo-100 shadow-md"
-              alt="Profile photo"
-            />
+            <div class="relative group">
+              <img
+                [src]="emp.photo_display || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=160'"
+                class="w-24 h-24 rounded-2xl object-cover border-2 border-indigo-100 shadow-md"
+                alt="Profile photo"
+              />
+              @if (authService.isHR()) {
+                <button
+                  type="button"
+                  (click)="detailPhotoInput.click()"
+                  class="absolute inset-0 bg-slate-900/60 hover:bg-slate-900/80 rounded-2xl flex flex-col items-center justify-center text-white transition opacity-0 group-hover:opacity-100 cursor-pointer"
+                  title="Update Employee Portrait (HR Privilege)"
+                >
+                  <span class="material-icons-outlined text-xl">add_a_photo</span>
+                  <span class="text-[9px] font-bold mt-0.5">HR Edit</span>
+                </button>
+                <input
+                  #detailPhotoInput
+                  type="file"
+                  accept="image/png, image/jpeg, image/webp"
+                  class="hidden"
+                  (change)="onDetailPhotoSelected($event)"
+                />
+              }
+            </div>
             <div>
               <div class="flex items-center justify-center md:justify-start gap-2.5">
                 <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight">{{ emp.full_name }}</h1>
@@ -340,5 +360,30 @@ export class EmployeeDetailComponent implements OnInit {
         this.showConfirm.set(false);
       }
     });
+  }
+
+  /**
+   * Handles HR image upload/update for an existing employee portrait.
+   * Why: Gives HR privilege to update employee photos with instantaneous preview.
+   */
+  onDetailPhotoSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files[0]) {
+      const file = input.files[0];
+      if (file.size > 5 * 1024 * 1024) {
+        this.toastService.warning('Photo file must be under 5MB.');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        const emp = this.employee();
+        if (emp) {
+          emp.photo_display = reader.result as string;
+          this.employee.set({ ...emp });
+          this.toastService.success('Employee portrait updated successfully (HR Privilege).');
+        }
+      };
+      reader.readAsDataURL(file);
+    }
   }
 }
