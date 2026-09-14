@@ -2,12 +2,11 @@
 
 [![Angular](https://img.shields.io/badge/Angular-21.2-dd0031.svg?logo=angular)](https://angular.dev/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-3.4-38bdf8.svg?logo=tailwind-css)](https://tailwindcss.com/)
-[![Django](https://img.shields.io/badge/Django-5.0-092e20.svg?logo=django)](https://www.djangoproject.com/)
-[![Django REST Framework](https://img.shields.io/badge/DRF-3.15-red.svg)](https://www.django-rest-framework.org/)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-336791.svg?logo=postgresql)](https://www.postgresql.org/)
-[![Docker](https://img.shields.io/badge/Docker-Enabled-2496ed.svg?logo=docker)](https://www.docker.com/)
+[![Django](https://img.shields.io/badge/Django-5.2-092e20.svg?logo=django)](https://www.djangoproject.com/)
+[![Django REST Framework](https://img.shields.io/badge/DRF-3.18-red.svg)](https://www.django-rest-framework.org/)
+[![SQLite](https://img.shields.io/badge/SQLite-3-003b57.svg?logo=sqlite)](https://www.sqlite.org/)
 
-**EmployeeHub** is a modern, scalable, secure, and production-ready **Employee Management System (HRMS)** engineered with a modular three-tier architecture. It delivers comprehensive workforce operations—from employee directory and attendance tracking to leave approvals, timesheet management, payroll processing, and performance appraisals.
+**EmployeeHub** is a modern, scalable, secure, and production-ready **Employee Management System (HRMS)** engineered with a modular three-tier architecture. It delivers comprehensive workforce operations — from employee directory and attendance tracking to leave approvals, timesheet management, and payroll processing.
 
 ---
 
@@ -35,7 +34,6 @@ EmployeeHub follows a strict three-tier separation of concerns:
 │  Leave Management & Quota Tracking                          │
 │  Weekly Timesheets & Task Allocation                        │
 │  Payroll Processing & PDF Payslips                          │
-│  Performance Goals & Appraisals                             │
 │  Audit Reports & CSV/Excel Exports                          │
 │                                                             │
 │  Shared UI Component System (Table, Modal, Badges, Toasts)  │
@@ -56,7 +54,6 @@ EmployeeHub follows a strict three-tier separation of concerns:
 │  Leave Allocations & Approval Workflows                     │
 │  Timesheet Hours Validation                                 │
 │  Payroll Engine & Salary Structures                         │
-│  Performance Period Evaluators                              │
 │  In-App Notifications                                       │
 │  Modular Serializers & API ViewSets                         │
 └─────────────────────────┬───────────────────────────────────┘
@@ -64,7 +61,7 @@ EmployeeHub follows a strict three-tier separation of concerns:
                           │ Django ORM
                           ▼
 ┌─────────────────────────────────────────────────────────────┐
-│                     POSTGRESQL                              │
+│                  SQLite (Development)                       │
 │                                                             │
 │  Normalized Schemas, Foreign Keys, Constraints & Indexes    │
 └─────────────────────────────────────────────────────────────┘
@@ -82,10 +79,12 @@ EmployeeHub follows a strict three-tier separation of concerns:
 | **Attendance Management** | Real-time Punch Terminal console with live clock, optional punch notes, daily check-in/out triggers, tardiness/half-day flag detection, and historical attendance logs. |
 | **Leave Management** | Quota balance tracking (Annual, Casual, Medical, Unpaid), leave application modal with date range calculation, and a supervisor approval/rejection queue with confirmation dialogs. |
 | **Timesheets** | Work allocation assignments, weekly hour entry grids, timesheet submission workflows, and manager review queues. |
-| **Payroll & Payslips** | Automated compensation calculation (`Gross = Basic + Allowances`, `Net = Gross - Deductions`), monthly payroll processing cycles, and an official **Payslip Preview & Print Modal**. |
-| **Performance & Goals** | Quarterly review cycles, OKR/KPI milestone progress bars, formal self & manager appraisals, rating scoring, and goal creation modals. |
+| **Payroll & Payslips** | HR-triggered monthly payroll runs, automated compensation calculation (`Gross = Basic + Allowances`, `Net = Gross − Deductions`), per-employee payslip generation with in-app notification, and official **PDF Payslip download** via ReportLab. |
 | **Reports & Exports** | Audit report generators for Workforce Master, Attendance Logs, and Payroll Summary with live data streaming preview tables and CSV/Excel downloads. |
 | **Notifications** | In-app notification center popover with unread badge counters and mark-as-read actions. |
+
+> [!NOTE]
+> The **Performance & Goals** module has been intentionally removed from this project as it is not required for the current scope of EmployeeHub.
 
 ---
 
@@ -138,7 +137,6 @@ EmployeeHub/
 │   │   │       ├── leave/          # Leave balances & approval queue
 │   │   │       ├── timesheets/     # Work allocation & hours entry
 │   │   │       ├── payroll/        # Payroll run & printable payslips
-│   │   │       ├── performance/    # Review cycles, goals & appraisals
 │   │   │       └── reports/        # Data audit & exports
 │   │   │
 │   │   ├── index.html
