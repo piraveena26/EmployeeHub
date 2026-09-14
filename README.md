@@ -77,7 +77,7 @@ EmployeeHub follows a strict three-tier separation of concerns:
 | Module | Features & Capabilities |
 | :--- | :--- |
 | **Dashboard** | Executive KPI cards, 7-day attendance trend charts, workforce distribution by department, pending approval alerts, and personal employee self-service widgets. |
-| **Employee Management** | Full workforce directory with dual Card Grid and Table views, instant debounced search, multi-facet filtering (Department, Status), onboarding modal, 3-tab detailed profile (Overview, Personal/Emergency, Compensation), and activation/deactivation workflows. |
+| **Employee Management** | Full workforce directory with dual Card Grid and Table views, instant debounced search, multi-facet filtering (Department, Status), onboarding modal with **exclusive HR photo upload privilege** & live portrait preview, 3-tab detailed profile (Overview, Personal/Emergency, Compensation), and activation/deactivation workflows. |
 | **Organization Management** | 4 sub-modules for corporate configuration: **Departments**, **Designations**, **Job Roles**, and operational **Shifts** with employee counts and status controls. |
 | **Attendance Management** | Real-time Punch Terminal console with live clock, optional punch notes, daily check-in/out triggers, tardiness/half-day flag detection, and historical attendance logs. |
 | **Leave Management** | Quota balance tracking (Annual, Casual, Medical, Unpaid), leave application modal with date range calculation, and a supervisor approval/rejection queue with confirmation dialogs. |
@@ -167,6 +167,19 @@ EmployeeHub/
 
 ---
 
+## 📈 Implementation Roadmap & Status
+
+EmployeeHub is developed sequentially in phases:
+
+| Phase | Module / Layer | Status | Highlights |
+| :--- | :--- | :---: | :--- |
+| **Stage 1** | **UI & Shared Design System** | **Completed** | Shared component library (`DataTable`, `Modal`, `StatusBadge`, `FilterBar`, `SearchBar`, `Pagination`, `Toasts`), zero `.css` Tailwind standard, 10 fully interactive feature views, HR photo upload controls, 29/29 Vitest tests passing. |
+| **Stage 2** | **Frontend Client & State Integration** | **In Progress** | Angular services configured with resilient offline demo authentication and REST API client architecture. |
+| **Stage 3** | **Backend (Django REST Framework)** | **Pending** | Django app structures, models, serializers, and ViewSets defined in `backend/`; pending virtual environment setup and migration execution. |
+| **Stage 4** | **Database (PostgreSQL & Seeding)** | **Pending** | PostgreSQL 16 schema creation, relational migrations, test seed data runner, and Celery/Redis background processing. |
+
+---
+
 ## 🛠️ Getting Started & Local Development
 
 ### Prerequisites
@@ -174,6 +187,13 @@ EmployeeHub/
 - **Python**: `3.11+` or `3.12+`
 - **PostgreSQL**: `16+` (or via Docker)
 - **Docker & Docker Compose** (optional for containerized deployment)
+
+### 🔑 Demo Accounts (Immediate UI Preview)
+The application includes a built-in 1-click role switcher on the login screen for testing without needing an active backend:
+- **Super Admin:** `admin@employeehub.com` (or username `admin`) / `admin123`
+- **HR Manager:** `hr@employeehub.com` (or username `hr`) / `hr123`
+- **Team Manager:** `manager@employeehub.com` (or username `manager`) / `manager123`
+- **Software Engineer:** `employee@employeehub.com` (or username `employee`) / `employee123`
 
 ---
 
