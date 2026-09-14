@@ -156,7 +156,6 @@ EmployeeHub/
     ├── leave_management/           # Quotas, balances & approval review
     ├── timesheets/                 # Task allocations & weekly logs
     ├── payroll/                    # Salary structures, payslips & periods
-    ├── performance/                # Review periods, goals & evaluation ratings
     ├── notifications/              # Database-stored in-app alerts
     ├── reports/                    # Data aggregation & CSV/Excel exports
     ├── manage.py
@@ -180,49 +179,52 @@ EmployeeHub/
 
 ### Prerequisites
 - **Node.js**: `v20+` or `v24+` with `npm 10+`
-- **Python**: `3.11+` or `3.12+`
-- **PostgreSQL**: `16+` (or via Docker)
-- **Docker & Docker Compose** (optional for containerized deployment)
+- **Python**: `3.12+`
 
-### 🔑 Demo Accounts (Immediate UI Preview)
-The application includes a built-in 1-click role switcher on the login screen for testing without needing an active backend:
-- **Super Admin:** `admin@employeehub.com` (or username `admin`) / `admin123`
-- **HR Manager:** `hr@employeehub.com` (or username `hr`) / `hr123`
-- **Team Manager:** `manager@employeehub.com` (or username `manager`) / `manager123`
-- **Software Engineer:** `employee@employeehub.com` (or username `employee`) / `employee123`
+> [!NOTE]
+> This project uses **SQLite** for local development — no PostgreSQL or Docker required.
 
 ---
 
-### 1. Running via Docker Compose (Recommended)
+### 🔑 Demo Accounts
 
-To spin up PostgreSQL, Django REST API, and Angular frontend in orchestrated containers:
+These credentials work for both the Angular app (`localhost:4200`) and Django Admin (`localhost:8000/admin/`):
 
-```bash
-# Clone the repository
-git clone https://github.com/piraveena26/EmployeeHub.git
-cd EmployeeHub
-
-# Build and start all services
-docker-compose up --build
-```
-
-- **Frontend**: Accessible at [http://localhost:4200](http://localhost:4200)
-- **Backend API**: Accessible at [http://localhost:8000/api/](http://localhost:8000/api/)
-- **PostgreSQL**: Running on port `5432`
+| Role | Email | Username | Password |
+| :--- | :--- | :--- | :--- |
+| **Super Admin** | `admin@employeehub.com` | `admin` | `admin123` |
+| **HR Manager** | `hr@employeehub.com` | `hr` | `hr123` |
+| **Team Manager** | `manager@employeehub.com` | `manager` | `manager123` |
+| **Employee** | `employee@employeehub.com` | `employee` | `employee123` |
 
 ---
 
-### 2. Manual Frontend Setup
+### 🌐 Important URLs
+
+| URL | Purpose |
+| :--- | :--- |
+| `http://localhost:4200` | ✅ **Main Application (Angular frontend)** |
+| `http://localhost:8000/api/` | REST API root |
+| `http://localhost:8000/api/schema/swagger-ui/` | Interactive API docs (Swagger UI) |
+| `http://localhost:8000/admin/` | Django Admin panel |
+
+> [!IMPORTANT]
+> `http://localhost:8000/` alone will show a Django 404 debug page — this is **expected**. The backend has no root view; always open the app at `http://localhost:4200`.
+
+---
+
+### 1. Frontend Setup
 
 ```bash
 cd frontend
 
-# Install dependencies (Angular 21, Tailwind, Material)
+# Install dependencies (Angular 21, Tailwind)
 npm install --legacy-peer-deps
 
 # Start the Angular development server
 npm start
 ```
+
 Open [http://localhost:4200](http://localhost:4200) in your browser.
 
 #### Running Frontend Unit Tests
@@ -232,48 +234,85 @@ npm test
 ng test --watch=false
 ```
 
-#### Running TypeScript Compilation / Lint
+#### TypeScript Compilation Check
 ```bash
 ./node_modules/.bin/tsc --noEmit
 ```
 
 ---
 
-### 3. Manual Backend Setup
+### 2. Backend Setup
 
 ```bash
 cd backend
 
-# Create and activate virtual environment
-python3 -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+# Create and activate Python 3.12 virtual environment
+python3.12 -m venv venv
+source venv/bin/activate        # macOS / Linux
+# venv\Scripts\activate         # Windows
 
-# Install requirements
+# Install all dependencies
 pip install -r requirements.txt
 
-# Copy environment variables
-cp .env.example .env
-
-# Apply database migrations
+# Apply database migrations (creates db.sqlite3 automatically)
 python manage.py migrate
 
-# Seed initial organization & employee data
+# Seed demo data (employees, payroll, leave, notifications)
 python manage.py seed_data
 
-# Run development server
+# Start the Django development server
 python manage.py runserver
 ```
-Backend API will be live at [http://localhost:8000](http://localhost:8000).
+
+Backend API will be live at [http://localhost:8000/api/](http://localhost:8000/api/).
+
+---
+
+## 💰 How to Run Payroll
+
+Payroll is **HR-triggered** — not automatic. Here is the monthly workflow:
+
+### Step 1 — Configure Salary Structures (one-time per employee)
+Via Django Admin → **Payroll → Salary Structures → Add**:
+- **Earnings:** Basic Salary, Housing, Transport, Medical, Other Allowances
+- **Deductions:** Tax, Provident Fund, Other Deductions
+- Backend computes: `Gross = Basic + All Allowances` and `Net = Gross − All Deductions`
+
+### Step 2 — Create a Payroll Period
+Django Admin → **Payroll → Payroll Periods → Add**
+- Set `month`, `year`, `start_date`, `end_date`
+
+### Step 3 — Trigger Payroll Run (HR only)
+```bash
+POST http://localhost:8000/api/payroll/periods/{period_id}/process-payroll/
+Authorization: Bearer <hr_jwt_token>
+```
+
+What this does automatically:
+1. ✅ Finds all active employees
+2. ✅ Reads each employee's `SalaryStructure`
+3. ✅ Creates a `Payslip` for each employee with computed amounts
+4. ✅ Sends each employee an **in-app notification** with their net salary
+5. ✅ Marks the period as `is_processed = True`
+
+### Step 4 — Employees View & Download
+Employees visit `/payroll` in the app to view payslips and download an official **PDF** (generated server-side via ReportLab).
+
+### Formula
+```
+Gross Salary  = Basic + Housing + Transport + Medical + Other Allowances
+Net Salary    = Gross Salary − (Tax + Provident Fund + Other Deductions)
+```
 
 ---
 
 ## 🧪 Testing & Verification
 
 Every module undergoes rigorous testing before marking tasks as complete:
-- **Unit Testing**: Tests components and services in isolation.
-- **Edge Case Validation**: Handles `null`, empty arrays, and search misses with `EmptyStateComponent`.
-- **Failure States**: Every screen implements an `ErrorStateComponent` with an actionable retry button (Rule 5).
-- **Zero CSS Violation**: Strictly enforces Tailwind CSS utility classes and prevents rogue `.css` overrides.
+- **Unit Testing**: Tests components and services in isolation via Vitest.
+- **Edge Case Validation**: Handles `null`, empty arrays, and search misses gracefully.
+- **Failure States**: Every screen implements an `ErrorStateComponent` with an actionable retry button.
+- **Zero CSS Violation**: Strictly enforces Tailwind CSS utility classes — no custom `.css` files.
 
 ---
 
@@ -281,8 +320,8 @@ Every module undergoes rigorous testing before marking tasks as complete:
 
 EmployeeHub features Role-Based Access Control (RBAC):
 - **Super Admin**: Full administrative control across organization, payroll, and users.
-- **HR Manager**: Manages workforce profiles, compensation, organization structures, and reports.
-- **Manager**: Team-level visibility, timesheet review, leave approvals, and appraisals.
+- **HR Manager**: Manages workforce profiles, compensation, organization structures, reports, and payroll runs.
+- **Manager**: Team-level visibility, timesheet review, and leave approvals.
 - **Employee**: Self-service portal (check-in/out, leave applications, timesheet entry, payslip download).
 
 > [!CAUTION]
